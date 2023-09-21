@@ -13,7 +13,7 @@ class Cart:
 
         if not cart:
             # save an empty cart in the session
-            cart = self.session[settings.SESSION_ID] = {}
+            cart = self.session[settings.CART_SESSION_ID] = {}
 
         self.cart = cart
 
