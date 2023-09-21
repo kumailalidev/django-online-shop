@@ -22,7 +22,8 @@
                             {{ total_items }} item{{ total_items|pluralize }},
                             ${{ cart.get_total_price }}
                         </a>
-                    {% else %}
+                    <!-- Avoid message for views that have an order object in the template context -->
+                    {% elif not order %}
                         Your cart is empty
                     {% endif %}
                 {% endwith %}
