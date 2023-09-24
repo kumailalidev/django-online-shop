@@ -38,6 +38,6 @@ def stripe_webhook(request):
             order.save()
 
             # Launch asynchronous task (Requires to run RabbitMQ and celery)
-            # payment_completed.delay(order.id)
+            payment_completed.delay(order.id)
 
     return HttpResponse(status=200)
