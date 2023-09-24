@@ -148,3 +148,8 @@ STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")  # Publishable
 STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY")  # Secret key
 STRIPE_API_VERSION = os.environ.get("STRIPE_API_VERSION")
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET")
+
+# Redis settings
+REDIS_HOST = os.environ.get("REDIS_HOST")
+REDIS_PORT = os.environ.get("REDIS_PORT")
+REDIS_DB = os.environ.get("REDIS_DB")
