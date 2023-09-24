@@ -16,8 +16,11 @@ def order_create(request):
     if request.method == "POST":
         form = OrderCreateForm(request.POST)
         if form.is_valid():
-            order = form.save()
-
+            order = form.save(commit=False)
+            if cart.coupon:
+                order.coupon = cart.coupon
+                order.discount = cart.coupon.discount
+            order.save()
             for item in cart:
                 OrderItem.objects.create(
                     order=order,
@@ -25,13 +28,10 @@ def order_create(request):
                     price=item["price"],
                     quantity=item["quantity"],
                 )
-
             # clear the cart
             cart.clear()
-
             # launch asynchronous task (Requires to run RabbitMQ and celery)
             # order_created.delay(order.id)
-
             # set the order in the session
             request.session["order_id"] = order.id
             # redirect for payment
