@@ -1,0 +1,23 @@
+# ------------------------------------------------------------------------------
+etcetera
+.git
+.vscode
+.editorconfig
+.gitignore
+todo.txt
+README.md
+Makefile
+# ------------------------------------------------------------------------------
+.env
+.env.stripe
+.env.dev.sample
+.env.prod.sample
+.coverage
+.pytest_cache
+__pycache__
+env_files
+htmlcov
+public
+# ------------------------------------------------------------------------------
+docker
+compose.dev.yaml

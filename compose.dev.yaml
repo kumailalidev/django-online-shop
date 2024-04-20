@@ -1,0 +1,182 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/dev/web/dev.web.Dockerfile
+    container_name: django
+    volumes:
+      # ------------------------------------------------------------------------------
+      # this volume is used to map the files and folders on the host to the container
+      # so if we change code on the host, code in the docker container will also be
+      # changed.
+      # ------------------------------------------------------------------------------
+      - .:/usr/src/app/
+      # ------------------------------------------------------------------------------
+      - staticfiles:/usr/src/app/public/staticfiles
+      - media:/usr/src/app/public/media
+    command: /usr/src/app/scripts/dev/web/start.sh
+    expose:
+      - 8000
+    env_file:
+      - ./env_files/dev/.env.web
+      - ./.env.stripe
+    depends_on:
+      - broker
+      - redis
+      - db
+      - mailhog
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/dev/web/dev.web.Dockerfile
+    container_name: celery
+    volumes:
+      # ------------------------------------------------------------------------------
+      # this volume is used to map the files and folders on the host to the container
+      # so if we change code on the host, code in the docker container will also be
+      # changed.
+      # ------------------------------------------------------------------------------
+      - .:/usr/src/app/
+      # ------------------------------------------------------------------------------
+      - staticfiles:/usr/src/app/public/staticfiles
+      - media:/usr/src/app/public/media
+    command: /usr/src/app/scripts/dev/web/celery/worker/start.sh
+    env_file:
+      - ./env_files/dev/.env.web
+      - ./.env.stripe
+    depends_on:
+      - broker
+      - redis
+      - db
+      - mailhog
+
+  flower:
+    build:
+      context: .
+      dockerfile: docker/dev/web/dev.web.Dockerfile
+    container_name: flower
+    volumes:
+      # ------------------------------------------------------------------------------
+      # this volume is used to map the files and folders on the host to the container
+      # so if we change code on the host, code in the docker container will also be
+      # changed.
+      # ------------------------------------------------------------------------------
+      - .:/usr/src/app/
+      # ------------------------------------------------------------------------------
+      - staticfiles:/usr/src/app/public/staticfiles
+      - media:/usr/src/app/public/media
+    command: /usr/src/app/scripts/dev/web/celery/flower/start.sh
+    ports:
+      - 5555:5555
+    env_file:
+      - ./env_files/dev/.env.web
+      - ./.env.stripe
+    depends_on:
+      - broker
+      - redis
+      - db
+      - mailhog
+
+  redis:
+    image: redis:7.2.4
+    container_name: redis
+    volumes:
+      - redis_data:/data
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redisinsight
+    volumes:
+      - redisinsight_data:/data
+    ports:
+      - 5540:5540
+    depends_on:
+      - redis
+
+  db:
+    image: postgres:15
+    container_name: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+
+  db-admin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4
+    volumes:
+      - pgadmin4_data:/var/lib/pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${DB_ADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${DB_ADMIN_DEFAULT_PASSWORD}
+      - PGADMIN_LISTEN_PORT=${DB_ADMIN_LISTEN_PORT}
+    ports:
+      - 5050:${DB_ADMIN_LISTEN_PORT}
+    depends_on:
+      - db
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    volumes:
+      - mailhog_data:${MAILHOG_MAILDIR_PATH:-/home/mailhog}
+    ports:
+      - 8025:8025
+    environment:
+      MH_STORAGE: ${MAILHOG_STORAGE:-maildir}
+      MH_MAILDIR_PATH: ${MAILHOG_MAILDIR_PATH:-/home/mailhog}
+
+  broker:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - 15672:15672
+    environment:
+      - RABBITMQ_DEFAULT_USER=${BROKER_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${BROKER_DEFAULT_PASS}
+      - RABBITMQ_DEFAULT_VHOST=${BROKER_DEFAULT_VHOST}
+
+  nginx:
+    build:
+      context: ./docker/dev/nginx
+      dockerfile: dev.nginx.Dockerfile
+    container_name: nginx
+    volumes:
+      - staticfiles:/usr/src/app/public/staticfiles
+      - media:/usr/src/app/public/media
+    ports:
+      - 8080:80
+    depends_on:
+      - web
+
+  stripe-cli:
+    image: stripe/stripe-cli
+    container_name: stripe-cli
+    command: "listen --api-key $${STRIPE_API_KEY} --device-name $${STRIPE_DEVICE_NAME} --forward-to localhost:8080/payment/webhook/"
+    env_file:
+      - ./.env.stripe
+    # ------------------------------------------------------------------------------
+    # using host networking to give the container direct access to the network stack
+    # of the host.
+    # ------------------------------------------------------------------------------
+    network_mode: "host"
+    # ------------------------------------------------------------------------------
+    depends_on:
+      - web
+
+volumes:
+  redis_data:
+  redisinsight_data:
+  postgres_data:
+  pgadmin4_data:
+  rabbitmq_data:
+  mailhog_data:
+  staticfiles:
+  media:
